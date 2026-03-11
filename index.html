@@ -82,7 +82,7 @@
                 this.loading = true;
                 this.errorMessage = null;
                 
-                this.render();
+                this.;
                 this.init();
             }
 
@@ -176,7 +176,7 @@
                             this.sharedBaskets = data;
                         }
                         this.loading = false;
-                        this.render();
+                        this.;
                     }, (error) => {
                         console.error('Firebase read error:', error);
                         this.errorMessage = 'Error connecting to database: ' + error.message;
@@ -444,6 +444,16 @@
                         </div>
                     </div>
                 `;
+                    
+                if (database) {
+                    database.ref('/status').once('value', (snapshot) => {
+                        const count = snapshot.numChildren() || 0;
+                        const countElement = document.getElementById('user-count');
+                        if (countElement) {
+                            countElement.textContent = count;
+                        }
+                    });
+                }
             }
         }
 
@@ -455,6 +465,7 @@
     </script>
 </body>
 </html>
+
 
 
 
