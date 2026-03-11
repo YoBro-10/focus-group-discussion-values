@@ -132,6 +132,32 @@
                     }
                 });
             }
+
+            exportToCSV() {
+                // 1. Prepare the headers
+                let csvContent = "data:text/csv;charset=utf-8,Basket,Word,Votes\n";
+            
+                // 2. Loop through each basket and its words
+                baskets.forEach(basket => {
+                    const items = this.getBasketDisplay(this.sharedBaskets[basket.id]);
+                    items.forEach(item => {
+                        // Clean the word for CSV (remove commas)
+                        const cleanWord = item.word.replace(/,/g, "");
+                        csvContent += `${basket.name},${cleanWord},${item.count}\n`;
+                    });
+                });
+            
+                // 3. Create a hidden link to trigger the download
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `focus_group_results_${new Date().toLocaleDateString()}.csv`);
+                document.body.appendChild(link);
+            
+                // 4. Click the link and then remove it
+                link.click();
+                document.body.removeChild(link);
+            }
             
             async init() {
                 try {
@@ -328,6 +354,9 @@
                                     <button onclick="app.resetMyWords()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
                                         Reset My Words
                                     </button>
+                                    <button onclick="app.exportToCSV()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+                                        📥 Export Results (CSV)
+                                    </button>
                                     <button onclick="app.resetAllBaskets()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
                                         Clear All Baskets
                                     </button>
@@ -423,6 +452,7 @@
     </script>
 </body>
 </html>
+
 
 
 
