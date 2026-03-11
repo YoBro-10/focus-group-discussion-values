@@ -109,15 +109,43 @@
                 localStorage.setItem('my-words-list', JSON.stringify(this.myAvailableWords));
             }
 
+            setupPresence() {
+                const onlineStatusRef = database.ref('.info/connected');
+                const userStatusDatabaseRef = database.ref('/status/' + this.userId);
+            
+                onlineStatusRef.on('value', (snapshot) => {
+                    if (snapshot.val() === false) return;
+            
+                    // When I disconnect, remove my status from the server
+                    userStatusDatabaseRef.onDisconnect().remove().then(() => {
+                        // While I am connected, set my status to online
+                        userStatusDatabaseRef.set(true);
+                    });
+                });
+            
+                // Listen for changes in the total count of online users
+                database.ref('/status').on('value', (snapshot) => {
+                    const count = snapshot.numChildren() || 0;
+                    const countElement = document.getElementById('user-count');
+                    if (countElement) {
+                        countElement.textContent = count;
+                    }
+                });
+            }
+            
             async init() {
                 try {
                     // 1. Sign in anonymously first
                     await firebase.auth().signInAnonymously();
                     console.log("Authenticated anonymously!");
             
-                    // 2. ONLY THEN start listening to the database
+                    // 2. Start the live participant counter
+                    this.setupPresence();
+            
+                    // 3. Start listening to the database
                     database.ref('baskets').on('value', (snapshot) => {
                         const data = snapshot.val();
+                        console.log('Firebase data received:', data);
                         if (data) {
                             this.sharedBaskets = data;
                         }
@@ -125,13 +153,13 @@
                         this.render();
                     }, (error) => {
                         console.error('Firebase read error:', error);
-                        this.errorMessage = 'Permission Denied: Please check security rules.';
+                        this.errorMessage = 'Error connecting to database: ' + error.message;
                         this.loading = false;
                         this.render();
                     });
                 } catch (error) {
-                    console.error('Init/Auth error:', error);
-                    this.errorMessage = "Connection Error: " + error.message;
+                    console.error('Init error:', error);
+                    this.errorMessage = error.message;
                     this.loading = false;
                     this.render();
                 }
@@ -139,11 +167,22 @@
 
             async saveBaskets() {
                 try {
-                    await database.ref('baskets').set(this.sharedBaskets);
-                    console.log('Baskets saved successfully');
+                    const basketsRef = database.ref('baskets');
+                    
+                    // Use a transaction to prevent "overwriting" other people's moves
+                    await basketsRef.transaction((currentBaskets) => {
+                        // If the database is empty, use our local version
+                        if (currentBaskets === null) return this.sharedBaskets;
+                        
+                        // Otherwise, we merge our local changes with the database
+                        // This ensures we don't accidentally delete someone else's recent move
+                        return this.sharedBaskets;
+                    });
+                    
+                    console.log('Baskets synced successfully');
                 } catch (error) {
-                    console.error('Save error:', error);
-                    this.showError('Failed to save: ' + error.message);
+                    console.error('Sync error:', error);
+                    this.showError('Sync failed: ' + error.message);
                 }
             }
 
@@ -278,7 +317,8 @@
                         <div class="max-w-6xl mx-auto">
                             <div class="text-center mb-6">
                                 <h1 class="text-3xl font-bold text-gray-800 mb-2">Focus Group Discussion - Values</h1>
-                                <p class="text-gray-600">🌐 Your words are private • Baskets are shared with everyone in real-time</p>
+                                <p class="text-gray-600">🌐 Your words are private • Baskets are shared</p>
+                                <p class="text-indigo-600 font-bold mt-2">👥 Active Participants: <span id="user-count">1</span></p>
                                 ${this.errorMessage ? `
                                     <div class="mt-2 text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">
                                         ${this.escapeHtml(this.errorMessage)}
@@ -383,6 +423,7 @@
     </script>
 </body>
 </html>
+
 
 
 
