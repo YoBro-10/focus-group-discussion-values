@@ -47,10 +47,10 @@
         ];
 
         const baskets = [
-            { id: 'basket1', name: 'Collaborate', color: 'bg-blue-100 border-blue-300' },
-            { id: 'basket2', name: 'Create', color: 'bg-green-100 border-green-300' },
-            { id: 'basket3', name: 'Compete', color: 'bg-yellow-100 border-yellow-300' },
-            { id: 'basket4', name: 'Control', color: 'bg-purple-100 border-purple-300' }
+            { id: 'basket1', name: 'Clan Culture (Collaborate)', color: 'bg-white border-black' },
+            { id: 'basket2', name: 'Adhocracy Culture (Create)', color: 'bg-white border-black' },
+            { id: 'basket3', name: 'Market Culture (Compete)', color: 'bg-white border-black' },
+            { id: 'basket4', name: 'Hierarchy Culture (Control)', color: 'bg-white border-black' }
         ];
 
         let app = null;
@@ -265,7 +265,10 @@
                                     const items = this.getBasketDisplay(this.sharedBaskets[basket.id]);
                                     return `
                                         <div ondragover="event.preventDefault()" ondrop="app.handleDrop('${basket.id}')" class="${basket.color} rounded-xl shadow-lg p-4 border-2 border-dashed min-h-48">
-                                            <h3 class="font-semibold mb-3">${basket.name} (${items.length})</h3>
+                                            <h3 class="font-bold text-black mb-3 text-lg underline decoration-dotted">
+                                                ${basket.name}
+                                                <span class="ml-2 text-sm font-normal text-gray-500">(${items.length})</span>
+                                            </h3>
                                             <div class="grid grid-cols-2 gap-2">
                                                 ${items.map(i => `
                                                     <div ${i.isMine ? `draggable="true" ondragstart="app.draggedWord='${this.escapeHtml(i.word)}'; app.draggedFrom='${basket.id}'"` : ''}
@@ -293,3 +296,4 @@
     </script>
 </body>
 </html>
+
