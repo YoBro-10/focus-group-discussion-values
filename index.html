@@ -354,12 +354,15 @@
                                     <button onclick="app.resetMyWords()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
                                         Reset My Words
                                     </button>
-                                    <button onclick="app.exportToCSV()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
-                                        📥 Export Results (CSV)
-                                    </button>
-                                    <button onclick="app.resetAllBaskets()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
-                                        Clear All Baskets
-                                    </button>
+                                
+                                    ${window.location.search.includes('role=admin') ? `
+                                        <button onclick="app.exportToCSV()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+                                            📥 Export Results (CSV)
+                                        </button>
+                                        <button onclick="app.resetAllBaskets()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                                            Clear All Baskets
+                                        </button>
+                                    ` : ''}
                                 </div>
                             </div>
 
@@ -452,6 +455,7 @@
     </script>
 </body>
 </html>
+
 
 
 
