@@ -111,10 +111,13 @@
 
             async init() {
                 try {
-                    // Listen to Firebase changes
+                    // 1. Sign in anonymously first
+                    await firebase.auth().signInAnonymously();
+                    console.log("Authenticated anonymously!");
+            
+                    // 2. ONLY THEN start listening to the database
                     database.ref('baskets').on('value', (snapshot) => {
                         const data = snapshot.val();
-                        console.log('Firebase data received:', data);
                         if (data) {
                             this.sharedBaskets = data;
                         }
@@ -122,13 +125,13 @@
                         this.render();
                     }, (error) => {
                         console.error('Firebase read error:', error);
-                        this.errorMessage = 'Error connecting to database: ' + error.message;
+                        this.errorMessage = 'Permission Denied: Please check security rules.';
                         this.loading = false;
                         this.render();
                     });
                 } catch (error) {
-                    console.error('Init error:', error);
-                    this.errorMessage = error.message;
+                    console.error('Init/Auth error:', error);
+                    this.errorMessage = "Connection Error: " + error.message;
                     this.loading = false;
                     this.render();
                 }
@@ -380,5 +383,6 @@
     </script>
 </body>
 </html>
+
 
 
