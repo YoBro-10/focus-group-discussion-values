@@ -2,12 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus Group Discussion - Values</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Culture Values Alignment</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        /* Prevents weird zooming issues on mobile during drag and drop */
+        body { touch-action: manipulation; }
+        .word-tag { transition: transform 0.1s ease; }
+        .word-tag:active { transform: scale(0.95); }
+    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -27,25 +33,21 @@
         const database = firebase.database();
 
         const initialWords = [
-            // Blue
             { text: 'Trust', color: 'bg-blue-100 border-blue-400' }, { text: 'Teamwork', color: 'bg-blue-100 border-blue-400' },
             { text: 'Respect', color: 'bg-blue-100 border-blue-400' }, { text: 'Communication', color: 'bg-blue-100 border-blue-400' },
             { text: 'Care', color: 'bg-blue-100 border-blue-400' }, { text: 'Empowerment', color: 'bg-blue-100 border-blue-400' },
             { text: 'Warm', color: 'bg-blue-100 border-blue-400' }, { text: 'Friendly', color: 'bg-blue-100 border-blue-400' },
             { text: 'Honest', color: 'bg-blue-100 border-blue-400' }, { text: 'Transparent', color: 'bg-blue-100 border-blue-400' },
-            // Green
             { text: 'Innovation', color: 'bg-green-100 border-green-400' }, { text: 'Creativity', color: 'bg-green-100 border-green-400' },
             { text: 'Agility', color: 'bg-green-100 border-green-400' }, { text: 'Experimentation', color: 'bg-green-100 border-green-400' },
             { text: 'Growth', color: 'bg-green-100 border-green-400' }, { text: 'Learning', color: 'bg-green-100 border-green-400' },
             { text: 'Vision', color: 'bg-green-100 border-green-400' }, { text: 'Adaptability', color: 'bg-green-100 border-green-400' },
             { text: 'Genuine', color: 'bg-green-100 border-green-400' },
-            // Orange
             { text: 'Stability', color: 'bg-orange-100 border-orange-400' }, { text: 'Consistency', color: 'bg-orange-100 border-orange-400' },
             { text: 'Order', color: 'bg-orange-100 border-orange-400' }, { text: 'Efficiency', color: 'bg-orange-100 border-orange-400' },
             { text: 'Accountability', color: 'bg-orange-100 border-orange-400' }, { text: 'Compliance', color: 'bg-orange-100 border-orange-400' },
             { text: 'Discipline', color: 'bg-orange-100 border-orange-400' }, { text: 'Standardisation', color: 'bg-orange-100 border-orange-400' },
             { text: 'Reliable', color: 'bg-orange-100 border-orange-400' },
-            // Purple
             { text: 'Competitive', color: 'bg-purple-100 border-purple-400' }, { text: 'Performance', color: 'bg-purple-100 border-purple-400' },
             { text: 'Service', color: 'bg-purple-100 border-purple-400' }, { text: 'Excellence', color: 'bg-purple-100 border-purple-400' },
             { text: 'Speed', color: 'bg-purple-100 border-purple-400' }, { text: 'Goals', color: 'bg-purple-100 border-purple-400' },
@@ -69,37 +71,34 @@
                 this.draggedWord = null;
                 this.draggedFrom = null;
                 this.loading = true;
-                this.errorMessage = null;
                 this.render();
                 this.init();
             }
 
             getUserId() {
-                let id = localStorage.getItem('focus-group-user-id');
+                let id = localStorage.getItem('fg-id-v4');
                 if (!id) {
-                    id = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                    localStorage.setItem('focus-group-user-id', id);
+                    id = 'u_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('fg-id-v4', id);
                 }
                 return id;
             }
 
             loadMyWords() {
-                const saved = localStorage.getItem('my-words-list-v3');
+                const saved = localStorage.getItem('my-list-v4');
                 return saved ? JSON.parse(saved) : [...initialWords];
             }
 
-            saveMyWords() {
-                localStorage.setItem('my-words-list-v3', JSON.stringify(this.myAvailableWords));
-            }
+            saveMyWords() { localStorage.setItem('my-list-v4', JSON.stringify(this.myAvailableWords)); }
 
             setupPresence() {
                 const statusRef = database.ref('/status/' + this.userId);
-                database.ref('.info/connected').on('value', (snap) => {
-                    if (snap.val()) statusRef.onDisconnect().remove().then(() => statusRef.set(true));
+                database.ref('.info/connected').on('value', (s) => {
+                    if (s.val()) statusRef.onDisconnect().remove().then(() => statusRef.set(true));
                 });
-                database.ref('/status').on('value', (snap) => {
-                    const countEl = document.getElementById('user-count');
-                    if (countEl) countEl.textContent = snap.numChildren() || 0;
+                database.ref('/status').on('value', (s) => {
+                    const el = document.getElementById('user-count');
+                    if (el) el.textContent = s.numChildren() || 0;
                 });
             }
 
@@ -112,31 +111,23 @@
                 });
                 const link = document.createElement("a");
                 link.setAttribute("href", encodeURI(csv));
-                link.setAttribute("download", "culture_values_results.csv");
-                document.body.appendChild(link);
+                link.setAttribute("download", "results.csv");
                 link.click();
-                document.body.removeChild(link);
             }
 
             async init() {
                 try {
                     await firebase.auth().signInAnonymously();
                     this.setupPresence();
-                    database.ref('baskets').on('value', (snap) => {
-                        if (snap.val()) this.sharedBaskets = snap.val();
+                    database.ref('baskets').on('value', (s) => {
+                        if (s.val()) this.sharedBaskets = s.val();
                         this.loading = false;
                         this.render();
                     });
-                } catch (e) {
-                    this.errorMessage = e.message;
-                    this.loading = false;
-                    this.render();
-                }
+                } catch (e) { this.render(); }
             }
 
-            async saveBaskets() {
-                await database.ref('baskets').transaction(() => this.sharedBaskets);
-            }
+            async saveBaskets() { await database.ref('baskets').transaction(() => this.sharedBaskets); }
 
             handleDrop(target) {
                 if (!this.draggedWord) return;
@@ -154,29 +145,23 @@
                     const idx = (newBaskets[this.draggedFrom] || []).findIndex(i => i.word === this.draggedWord && i.userId === this.userId);
                     if (idx === -1) return;
                     newBaskets[this.draggedFrom].splice(idx, 1);
-                    if (target === 'available') {
-                        newMyWords.push(wordInfo);
-                    } else {
-                        newBaskets[target].push({ word: this.draggedWord, userId: this.userId, color: wordInfo.color });
-                    }
+                    if (target === 'available') newMyWords.push(wordInfo);
+                    else newBaskets[target].push({ word: this.draggedWord, userId: this.userId, color: wordInfo.color });
                 }
                 this.myAvailableWords = newMyWords;
                 this.sharedBaskets = newBaskets;
-                this.saveMyWords();
-                this.saveBaskets();
-                this.render();
+                this.saveMyWords(); this.saveBaskets(); this.render();
             }
 
             resetMyWords() {
                 const used = new Set();
                 Object.values(this.sharedBaskets).forEach(b => b?.forEach(i => { if (i.userId === this.userId) used.add(i.word); }));
                 this.myAvailableWords = initialWords.filter(w => !used.has(w.text));
-                this.saveMyWords();
-                this.render();
+                this.saveMyWords(); this.render();
             }
 
             async resetAllBaskets() {
-                if (confirm('Are you sure you want to clear all baskets for everyone?')) {
+                if (confirm('Clear board?')) {
                     this.sharedBaskets = { basket1: [], basket2: [], basket3: [], basket4: [] };
                     await this.saveBaskets();
                 }
@@ -199,51 +184,48 @@
 
             render() {
                 const root = document.getElementById('root');
-                if (this.loading) { root.innerHTML = '<div class="h-screen flex items-center justify-center font-sans">Loading shared session...</div>'; return; }
+                if (this.loading) { root.innerHTML = '<div class="h-screen flex items-center justify-center">Loading...</div>'; return; }
                 root.innerHTML = `
-                    <div class="min-h-screen bg-slate-100 p-4 font-sans">
+                    <div class="min-h-screen bg-slate-100 p-2 md:p-4 font-sans text-slate-900">
                         <div class="max-w-6xl mx-auto">
-                            <div class="text-center mb-8">
-                                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Culture Values Alignment</h1>
-                                <p class="text-indigo-600 font-bold mt-2">👥 Participants Live: <span id="user-count">...</span></p>
-                                <div class="mt-4 flex gap-3 justify-center">
-                                    <button onclick="app.resetMyWords()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-full text-sm font-bold shadow-md transition-all">Reset My List</button>
+                            <div class="text-center mb-6">
+                                <h1 class="text-xl md:text-3xl font-black uppercase tracking-tighter">Culture Alignment</h1>
+                                <p class="text-indigo-600 font-bold text-xs md:text-sm">👥 Live: <span id="user-count">...</span></p>
+                                <div class="mt-4 flex gap-2 justify-center flex-wrap">
+                                    <button onclick="app.resetMyWords()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase shadow-md">Reset My List</button>
                                     ${window.location.search.includes('role=admin') ? `
-                                        <button onclick="app.exportToCSV()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-full text-sm font-bold shadow-md transition-all">Export Data</button>
-                                        <button onclick="app.resetAllBaskets()" class="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-full text-sm font-bold shadow-md transition-all">Clear Board</button>
+                                        <button onclick="app.exportToCSV()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase shadow-md">Export</button>
+                                        <button onclick="app.resetAllBaskets()" class="bg-rose-600 text-white px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase shadow-md">Clear</button>
                                     ` : ''}
                                 </div>
                             </div>
 
-                            <div ondragover="event.preventDefault()" ondrop="app.handleDrop('available')" class="bg-white rounded-2xl shadow-sm p-5 mb-8 border-2 border-dashed border-slate-300 min-h-32">
-                                <h2 class="font-bold text-slate-700 mb-4 flex items-center">
-                                    <span class="bg-slate-100 p-1 px-3 rounded-full mr-2 text-xs">Selection Pool</span> My Available Words
-                                </h2>
-                                <div class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
+                            <div ondragover="event.preventDefault()" ondrop="app.handleDrop('available')" class="bg-white rounded-2xl shadow-inner p-3 md:p-5 mb-6 border-2 border-dashed border-slate-300 min-h-24">
+                                <h2 class="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-3">Available Pool</h2>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                                     ${this.myAvailableWords.map(w => `
                                         <div draggable="true" ondragstart="app.draggedWord='${this.escapeHtml(w.text)}'; app.draggedFrom='available'"
-                                             class="${w.color} border-2 rounded-xl p-3 cursor-grab active:cursor-grabbing text-[11px] text-center font-bold shadow-sm uppercase tracking-wider hover:scale-105 transition-transform">
+                                             class="${w.color} border-2 rounded-lg p-2 cursor-grab active:cursor-grabbing text-[10px] text-center font-bold uppercase tracking-tight shadow-sm hover:scale-105 transition-transform">
                                             ${this.escapeHtml(w.text)}
                                         </div>
                                     `).join('')}
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 ${baskets.map(b => {
                                     const items = this.getBasketDisplay(this.sharedBaskets[b.id]);
                                     return `
-                                        <div ondragover="event.preventDefault()" ondrop="app.handleDrop('${b.id}')" class="bg-white border-2 border-dotted border-black rounded-3xl p-6 min-h-[250px] shadow-xl">
-                                            <h3 class="font-black text-black text-center mb-6 uppercase text-base tracking-widest border-b-2 border-black pb-2">${b.name}</h3>
-                                            <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                                        <div ondragover="event.preventDefault()" ondrop="app.handleDrop('${b.id}')" class="bg-white border-2 border-dotted border-black rounded-2xl p-4 min-h-[180px] shadow-lg">
+                                            <h3 class="font-black text-center mb-4 uppercase text-xs tracking-widest border-b border-black pb-1">${b.name}</h3>
+                                            <div class="grid grid-cols-2 gap-2">
                                                 ${items.map(i => `
                                                     <div ${i.isMine ? `draggable="true" ondragstart="app.draggedWord='${this.escapeHtml(i.word)}'; app.draggedFrom='${b.id}'"` : ''}
-                                                         class="${i.color} ${i.isMine ? 'ring-2 ring-black' : 'border-slate-400 opacity-90'} border-2 rounded-lg p-2 text-[10px] text-center font-black uppercase shadow-sm">
+                                                         class="${i.color} ${i.isMine ? 'ring-2 ring-black' : 'border-slate-300 opacity-80'} border-2 rounded p-1.5 text-[9px] text-center font-bold uppercase">
                                                         ${this.escapeHtml(i.display)} ${i.isMine ? '●' : ''}
                                                     </div>
                                                 `).join('')}
                                             </div>
-                                            ${items.length === 0 ? '<div class="h-32 flex items-center justify-center text-slate-300 font-bold uppercase text-xs tracking-tighter">Drag items here</div>' : ''}
                                         </div>
                                     `;
                                 }).join('')}
