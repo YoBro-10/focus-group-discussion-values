@@ -131,40 +131,52 @@
 
             handleDrop(target) {
                 if (!this.draggedWord) return;
+                
                 let newMyWords = [...this.myAvailableWords];
                 let newBaskets = JSON.parse(JSON.stringify(this.sharedBaskets));
+                
+                // Find the original word object to keep the color consistent
                 const wordInfo = initialWords.find(w => w.text === this.draggedWord);
-
+            
                 if (this.draggedFrom === 'available') {
+                    // Moving from Pool to a Basket
                     newMyWords = newMyWords.filter(w => w.text !== this.draggedWord);
                     if (target !== 'available') {
                         if (!newBaskets[target]) newBaskets[target] = [];
-                        newBaskets[target].push({ word: this.draggedWord, userId: this.userId, color: wordInfo.color });
+                        newBaskets[target].push({ 
+                            word: this.draggedWord, 
+                            userId: this.userId, 
+                            color: wordInfo.color 
+                        });
                     }
                 } else {
-                    const idx = (newBaskets[this.draggedFrom] || []).findIndex(i => i.word === this.draggedWord && i.userId === this.userId);
-                    if (idx === -1) return;
-                    newBaskets[this.draggedFrom].splice(idx, 1);
-                    if (target === 'available') newMyWords.push(wordInfo);
-                    else newBaskets[target].push({ word: this.draggedWord, userId: this.userId, color: wordInfo.color });
+                    // Moving from one Basket to another (or back to pool)
+                    const sourceBasket = this.draggedFrom;
+                    const idx = (newBaskets[sourceBasket] || []).findIndex(
+                        i => i.word === this.draggedWord && i.userId === this.userId
+                    );
+                    
+                    if (idx === -1) return; // Not your word, can't move it
+                    
+                    newBaskets[sourceBasket].splice(idx, 1); // Remove from old home
+                    
+                    if (target === 'available') {
+                        newMyWords.push(wordInfo); // Put back in pool
+                    } else {
+                        // Drop into new basket
+                        newBaskets[target].push({ 
+                            word: this.draggedWord, 
+                            userId: this.userId, 
+                            color: wordInfo.color 
+                        });
+                    }
                 }
+                
                 this.myAvailableWords = newMyWords;
                 this.sharedBaskets = newBaskets;
-                this.saveMyWords(); this.saveBaskets(); this.render();
-            }
-
-            resetMyWords() {
-                const used = new Set();
-                Object.values(this.sharedBaskets).forEach(b => b?.forEach(i => { if (i.userId === this.userId) used.add(i.word); }));
-                this.myAvailableWords = initialWords.filter(w => !used.has(w.text));
-                this.saveMyWords(); this.render();
-            }
-
-            async resetAllBaskets() {
-                if (confirm('Clear board?')) {
-                    this.sharedBaskets = { basket1: [], basket2: [], basket3: [], basket4: [] };
-                    await this.saveBaskets();
-                }
+                this.saveMyWords();
+                this.saveBaskets();
+                this.render();
             }
 
             getBasketDisplay(items) {
@@ -245,5 +257,6 @@
     </script>
 </body>
 </html>
+
 
 
