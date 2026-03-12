@@ -10,13 +10,15 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
         body { touch-action: manipulation; }
-        .word-tag { transition: transform 0.1s ease; }
-        .word-tag:active { transform: scale(0.95); }
-        .selected-word { ring: 4px solid #4f46e5 !important; transform: scale(1.05); }
+        .selected-word { ring: 4px solid #4f46e5 !important; transform: scale(1.05); z-index: 50; }
     </style>
 </head>
 <body class="bg-slate-100">
-    <div id="root"></div>
+    <div id="root">
+        <div class="h-screen flex items-center justify-center font-bold text-slate-500">
+            Connecting to Board...
+        </div>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -28,9 +30,6 @@
             messagingSenderId: "833887600551",
             appId: "1:833887600551:web:77329c59d24d9b326e4082"
         };
-
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
 
         const initialWords = [
             { text: 'Trust', color: 'bg-blue-100 border-blue-400' }, { text: 'Teamwork', color: 'bg-blue-100 border-blue-400' },
@@ -61,7 +60,8 @@
             { id: 'basket4', name: 'Hierarchy Culture (Control)' }
         ];
 
-        let app = null;
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
         class FocusGroupApp {
             constructor() {
@@ -89,9 +89,7 @@
                 return saved ? JSON.parse(saved) : [...initialWords];
             }
 
-            saveMyWords() { 
-                localStorage.setItem('my-val-list-v8', JSON.stringify(this.myAvailableWords)); 
-            }
+            saveMyWords() { localStorage.setItem('my-val-list-v8', JSON.stringify(this.myAvailableWords)); }
 
             async init() {
                 try {
@@ -102,10 +100,8 @@
                         this.loading = false;
                         this.render();
                     });
-                } catch (e) { 
-                    console.error("Init error:", e);
-                    this.loading = false;
-                    this.render(); 
+                } catch (e) {
+                    document.getElementById('root').innerHTML = `<div class='p-10'>Connection Error: ${e.message}</div>`;
                 }
             }
 
@@ -121,7 +117,6 @@
             }
 
             handleSelect(wordText, from) {
-                // Toggle selection for click-to-move (mobile friendly)
                 if (this.draggedWord === wordText) {
                     this.draggedWord = null;
                     this.draggedFrom = null;
@@ -140,46 +135,33 @@
 
                 if (from === target) {
                     this.draggedWord = null;
+                    this.render();
                     return;
                 }
 
-                // FLOW 1: From Pool to Basket
-                if (from === 'available' && target !== 'available') {
+                // Handle moves
+                if (from === 'available') {
                     this.myAvailableWords = this.myAvailableWords.filter(w => w.text !== wordText);
                     this.saveMyWords();
-                    await database.ref(`baskets/${target}`).transaction((current) => {
-                        current = current || [];
-                        current.push({ word: wordText, userId: this.userId, color: wordInfo.color });
-                        return current;
+                } else {
+                    await database.ref(`baskets/${from}`).transaction((c) => {
+                        if (!c) return c;
+                        const idx = c.findIndex(i => i.word === wordText && i.userId === this.userId);
+                        if (idx > -1) c.splice(idx, 1);
+                        return c;
                     });
-                } 
-                // FLOW 2: From Basket back to Pool
-                else if (from !== 'available' && target === 'available') {
-                    await database.ref(`baskets/${from}`).transaction((current) => {
-                        if (!current) return current;
-                        const idx = current.findIndex(i => i.word === wordText && i.userId === this.userId);
-                        if (idx > -1) current.splice(idx, 1);
-                        return current;
-                    });
+                }
+
+                if (target === 'available') {
                     if (!this.myAvailableWords.find(w => w.text === wordText)) {
                         this.myAvailableWords.push(wordInfo);
                         this.saveMyWords();
                     }
-                }
-                // FLOW 3: From Basket to Basket
-                else if (from !== 'available' && target !== 'available') {
-                    // Remove from old
-                    await database.ref(`baskets/${from}`).transaction((current) => {
-                        if (!current) return current;
-                        const idx = current.findIndex(i => i.word === wordText && i.userId === this.userId);
-                        if (idx > -1) current.splice(idx, 1);
-                        return current;
-                    });
-                    // Add to new
-                    await database.ref(`baskets/${target}`).transaction((current) => {
-                        current = current || [];
-                        current.push({ word: wordText, userId: this.userId, color: wordInfo.color });
-                        return current;
+                } else {
+                    await database.ref(`baskets/${target}`).transaction((c) => {
+                        c = c || [];
+                        c.push({ word: wordText, userId: this.userId, color: wordInfo.color });
+                        return c;
                     });
                 }
 
@@ -189,37 +171,21 @@
             }
 
             async resetAllBaskets() {
-                if (confirm('ADMIN: Clear entire board for all users?')) {
+                if (confirm('ADMIN: Clear entire board?')) {
                     await database.ref('baskets').set({ basket1: [], basket2: [], basket3: [], basket4: [] });
                 }
             }
 
             resetMyWords() {
-                if (confirm('Reset your available words pool? (This won\'t affect items already in baskets)')) {
-                    const usedInBaskets = new Set();
+                if (confirm('Reset your word pool?')) {
+                    const used = new Set();
                     Object.values(this.sharedBaskets).forEach(b => {
-                        if (Array.isArray(b)) {
-                            b.forEach(item => { if (item.userId === this.userId) usedInBaskets.add(item.word); });
-                        }
+                        if (Array.isArray(b)) b.forEach(i => { if (i.userId === this.userId) used.add(i.word); });
                     });
-                    this.myAvailableWords = initialWords.filter(w => !usedInBaskets.has(w.text));
+                    this.myAvailableWords = initialWords.filter(w => !used.has(w.text));
                     this.saveMyWords();
                     this.render();
                 }
-            }
-
-            exportToCSV() {
-                let csv = "data:text/csv;charset=utf-8,Basket,Word,Count\n";
-                baskets.forEach(b => {
-                    const items = this.getBasketDisplay(this.sharedBaskets[b.id]);
-                    items.forEach(i => {
-                        csv += `"${b.name}","${i.word}",${i.count}\n`;
-                    });
-                });
-                const link = document.createElement("a");
-                link.setAttribute("href", encodeURI(csv));
-                link.setAttribute("download", "culture_results.csv");
-                link.click();
             }
 
             getBasketDisplay(items) {
@@ -243,40 +209,61 @@
 
             render() {
                 const root = document.getElementById('root');
-                if (this.loading) { 
-                    root.innerHTML = '<div class="h-screen flex items-center justify-center font-bold text-slate-500">Connecting to Values Board...</div>'; 
-                    return; 
-                }
+                if (this.loading) return;
 
                 root.innerHTML = `
-                    <div class="min-h-screen p-2 md:p-4 font-sans text-slate-900">
-                        <div class="max-w-6xl mx-auto">
-                            <div class="text-center mb-6">
-                                <h1 class="text-xl md:text-3xl font-black uppercase tracking-tighter">Focus Group - Culture Values</h1>
-                                <p class="text-indigo-600 font-bold text-xs md:text-sm">👥 Live Participants: <span id="user-count">...</span></p>
-                                
-                                <div class="mt-4 flex gap-2 justify-center flex-wrap">
-                                    <button onclick="app.resetMyWords()" class="bg-emerald-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Reset My Pool</button>
-                                    ${this.isAdmin ? `
-                                        <button onclick="app.exportToCSV()" class="bg-indigo-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Export CSV</button>
-                                        <button onclick="app.resetAllBaskets()" class="bg-rose-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Clear Board</button>
-                                    ` : ''}
-                                </div>
+                <div class="min-h-screen p-2 md:p-4 text-slate-900">
+                    <div class="max-w-6xl mx-auto">
+                        <div class="text-center mb-6">
+                            <h1 class="text-xl md:text-3xl font-black uppercase">Culture Values Board</h1>
+                            <p class="text-indigo-600 font-bold">👥 Participants: <span id="user-count">...</span></p>
+                            <div class="mt-4 flex gap-2 justify-center">
+                                <button onclick="app.resetMyWords()" class="bg-emerald-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Reset My Pool</button>
+                                ${this.isAdmin ? `
+                                    <button onclick="app.resetAllBaskets()" class="bg-rose-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Clear Board</button>
+                                ` : ''}
                             </div>
+                        </div>
 
-                            <div ondragover="event.preventDefault()" ondrop="app.handleDrop('available')" onclick="app.handleDrop('available')"
-                                 class="bg-white rounded-2xl shadow-inner p-4 mb-6 border-2 border-dashed border-slate-300 min-h-24 text-center cursor-pointer">
-                                <h2 class="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-3">Available Words Pool (Click to select/return)</h2>
-                                <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-2">
-                                    ${this.myAvailableWords.map(w => `
-                                        <div draggable="true" 
-                                             ondragstart="app.draggedWord='${this.escapeHtml(w.text)}'; app.draggedFrom='available'"
-                                             onclick="event.stopPropagation(); app.handleSelect('${this.escapeHtml(w.text)}', 'available')"
-                                             class="${w.color} ${this.draggedWord === w.text ? 'selected-word' : ''} border-2 rounded-lg p-2 cursor-grab active:cursor-grabbing text-[10px] text-center font-bold uppercase shadow-sm transition-all">
-                                            ${this.escapeHtml(w.text)}
+                        <div ondragover="event.preventDefault()" ondrop="app.handleDrop('available')" onclick="app.handleDrop('available')"
+                             class="bg-white rounded-2xl shadow-inner p-4 mb-6 border-2 border-dashed border-slate-300 min-h-24 text-center cursor-pointer">
+                            <h2 class="font-black text-[10px] uppercase text-slate-400 mb-3">Available Pool (Click word then click basket)</h2>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-2">
+                                ${this.myAvailableWords.map(w => `
+                                    <div draggable="true" ondragstart="app.draggedWord='${this.escapeHtml(w.text)}'; app.draggedFrom='available'"
+                                         onclick="event.stopPropagation(); app.handleSelect('${this.escapeHtml(w.text)}', 'available')"
+                                         class="${w.color} ${this.draggedWord === w.text ? 'selected-word' : ''} border-2 rounded-lg p-2 cursor-grab text-[10px] font-bold uppercase shadow-sm">
+                                        ${this.escapeHtml(w.text)}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            ${baskets.map(b => {
+                                const items = this.getBasketDisplay(this.sharedBaskets[b.id]);
+                                return `
+                                    <div ondragover="event.preventDefault()" ondrop="app.handleDrop('${b.id}')" onclick="app.handleDrop('${b.id}')"
+                                         class="bg-white border-2 border-black rounded-2xl p-4 min-h-[180px] shadow-lg cursor-pointer">
+                                        <h3 class="font-black text-center mb-4 uppercase text-xs border-b-2 border-black pb-2">${b.name}</h3>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            ${items.map(i => `
+                                                <div ${i.isMine ? `draggable="true" ondragstart="app.draggedWord='${this.escapeHtml(i.word)}'; app.draggedFrom='${b.id}'" onclick="event.stopPropagation(); app.handleSelect('${this.escapeHtml(i.word)}', '${b.id}')"` : ''}
+                                                     class="${i.color} ${i.isMine ? 'ring-2 ring-black' : 'opacity-60'} ${this.draggedWord === i.word && i.isMine ? 'selected-word' : ''} border-2 rounded p-2 text-[10px] font-bold uppercase">
+                                                    ${this.escapeHtml(i.display)} ${i.isMine ? '●' : ''}
+                                                </div>
+                                            `).join('')}
                                         </div>
-                                    `).join('')}
-                                </div>
-                            </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>`;
+            }
+        }
 
-                            <div
+        const app = new FocusGroupApp();
+    </script>
+</body>
+</html>
