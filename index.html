@@ -71,6 +71,7 @@
                 this.draggedWord = null;
                 this.draggedFrom = null;
                 this.loading = true;
+                this.currentParticipants = 0;
                 this.isAdmin = new URLSearchParams(window.location.search).get('role') === 'admin';
                 this.init();
             }
@@ -111,8 +112,9 @@
                     if (s.val()) statusRef.onDisconnect().remove().then(() => statusRef.set(true));
                 });
                 database.ref('/status').on('value', (s) => {
+                    this.currentParticipants = s.numChildren() || 0;
                     const el = document.getElementById('user-count');
-                    if (el) el.textContent = s.numChildren() || 0;
+                    if (el) el.textContent = this.currentParticipants;
                 });
             }
 
@@ -139,7 +141,6 @@
                     return;
                 }
 
-                // Handle moves
                 if (from === 'available') {
                     this.myAvailableWords = this.myAvailableWords.filter(w => w.text !== wordText);
                     this.saveMyWords();
@@ -188,6 +189,18 @@
                 }
             }
 
+            exportToCSV() {
+                let csv = "data:text/csv;charset=utf-8,Basket,Word,Count\n";
+                baskets.forEach(b => {
+                    const items = this.getBasketDisplay(this.sharedBaskets[b.id]);
+                    items.forEach(i => { csv += `"${b.name}","${i.word}",${i.count}\n`; });
+                });
+                const link = document.createElement("a");
+                link.setAttribute("href", encodeURI(csv));
+                link.setAttribute("download", "results.csv");
+                link.click();
+            }
+
             getBasketDisplay(items) {
                 const groups = {};
                 (items || []).forEach(i => {
@@ -215,11 +228,12 @@
                 <div class="min-h-screen p-2 md:p-4 text-slate-900">
                     <div class="max-w-6xl mx-auto">
                         <div class="text-center mb-6">
-                            <h1 class="text-xl md:text-3xl font-black uppercase">Culture Values Board</h1>
-                            <p class="text-indigo-600 font-bold">👥 Participants: <span id="user-count">...</span></p>
+                            <h1 class="text-xl md:text-3xl font-black uppercase tracking-tighter">Culture Values Board</h1>
+                            <p class="text-indigo-600 font-bold">👥 Participants: <span id="user-count">${this.currentParticipants}</span></p>
                             <div class="mt-4 flex gap-2 justify-center">
                                 <button onclick="app.resetMyWords()" class="bg-emerald-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Reset My Pool</button>
                                 ${this.isAdmin ? `
+                                    <button onclick="app.exportToCSV()" class="bg-indigo-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Export CSV</button>
                                     <button onclick="app.resetAllBaskets()" class="bg-rose-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Clear Board</button>
                                 ` : ''}
                             </div>
