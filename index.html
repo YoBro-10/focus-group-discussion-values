@@ -171,14 +171,46 @@
                 this.render();
             }
 
+            async clearMyBaskets() {
+                if (!confirm("Remove all your words from the baskets and put them back in your pool?")) return;
+
+                const myRecoveredWords = [];
+
+                for (const basketId of Object.keys(this.sharedBaskets)) {
+                    await database.ref(`baskets/${basketId}`).transaction((current) => {
+                        if (!current) return current;
+                        // Find all words belonging to this user in this basket
+                        const updated = current.filter(item => {
+                            if (item.userId === this.userId) {
+                                myRecoveredWords.push(item.word);
+                                return false; // Remove from basket
+                            }
+                            return true; // Keep others
+                        });
+                        return updated;
+                    });
+                }
+
+                // Add recovered words back to the local pool
+                myRecoveredWords.forEach(wordText => {
+                    const wordInfo = initialWords.find(w => w.text === wordText);
+                    if (wordInfo && !this.myAvailableWords.find(poolW => poolW.text === wordText)) {
+                        this.myAvailableWords.push(wordInfo);
+                    }
+                });
+
+                this.saveMyWords();
+                this.render();
+            }
+
             async resetAllBaskets() {
-                if (confirm('ADMIN: Clear entire board?')) {
+                if (confirm('ADMIN: Clear entire board for everyone?')) {
                     await database.ref('baskets').set({ basket1: [], basket2: [], basket3: [], basket4: [] });
                 }
             }
 
-            resetMyWords() {
-                if (confirm('Reset your word pool?')) {
+            resetMyPool() {
+                if (confirm('Reset your word pool? (Items already in baskets will stay there)')) {
                     const used = new Set();
                     Object.values(this.sharedBaskets).forEach(b => {
                         if (Array.isArray(b)) b.forEach(i => { if (i.userId === this.userId) used.add(i.word); });
@@ -230,11 +262,13 @@
                         <div class="text-center mb-6">
                             <h1 class="text-xl md:text-3xl font-black uppercase tracking-tighter">Culture Values Board</h1>
                             <p class="text-indigo-600 font-bold">👥 Participants: <span id="user-count">${this.currentParticipants}</span></p>
-                            <div class="mt-4 flex gap-2 justify-center">
-                                <button onclick="app.resetMyWords()" class="bg-emerald-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Reset My Pool</button>
+                            
+                            <div class="mt-4 flex gap-2 justify-center flex-wrap">
+                                <button onclick="app.clearMyBaskets()" class="bg-amber-500 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Clear My Choices</button>
+                                <button onclick="app.resetMyPool()" class="bg-emerald-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Refresh Pool</button>
                                 ${this.isAdmin ? `
                                     <button onclick="app.exportToCSV()" class="bg-indigo-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Export CSV</button>
-                                    <button onclick="app.resetAllBaskets()" class="bg-rose-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Clear Board</button>
+                                    <button onclick="app.resetAllBaskets()" class="bg-rose-600 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow-md">Clear All</button>
                                 ` : ''}
                             </div>
                         </div>
