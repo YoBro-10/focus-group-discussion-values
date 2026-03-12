@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Focus Group Discussions - Culture Values</title>
+    <title>Culture Values Alignment</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
-        /* Prevents weird zooming issues on mobile during drag and drop */
         body { touch-action: manipulation; }
         .word-tag { transition: transform 0.1s ease; }
         .word-tag:active { transform: scale(0.95); }
@@ -33,21 +32,25 @@
         const database = firebase.database();
 
         const initialWords = [
+            // Blue
             { text: 'Trust', color: 'bg-blue-100 border-blue-400' }, { text: 'Teamwork', color: 'bg-blue-100 border-blue-400' },
             { text: 'Respect', color: 'bg-blue-100 border-blue-400' }, { text: 'Communication', color: 'bg-blue-100 border-blue-400' },
             { text: 'Care', color: 'bg-blue-100 border-blue-400' }, { text: 'Empowerment', color: 'bg-blue-100 border-blue-400' },
             { text: 'Warm', color: 'bg-blue-100 border-blue-400' }, { text: 'Friendly', color: 'bg-blue-100 border-blue-400' },
             { text: 'Honest', color: 'bg-blue-100 border-blue-400' }, { text: 'Transparent', color: 'bg-blue-100 border-blue-400' },
+            // Green
             { text: 'Innovation', color: 'bg-green-100 border-green-400' }, { text: 'Creativity', color: 'bg-green-100 border-green-400' },
             { text: 'Agility', color: 'bg-green-100 border-green-400' }, { text: 'Experimentation', color: 'bg-green-100 border-green-400' },
             { text: 'Growth', color: 'bg-green-100 border-green-400' }, { text: 'Learning', color: 'bg-green-100 border-green-400' },
             { text: 'Vision', color: 'bg-green-100 border-green-400' }, { text: 'Adaptability', color: 'bg-green-100 border-green-400' },
             { text: 'Genuine', color: 'bg-green-100 border-green-400' },
+            // Orange
             { text: 'Stability', color: 'bg-orange-100 border-orange-400' }, { text: 'Consistency', color: 'bg-orange-100 border-orange-400' },
             { text: 'Order', color: 'bg-orange-100 border-orange-400' }, { text: 'Efficiency', color: 'bg-orange-100 border-orange-400' },
             { text: 'Accountability', color: 'bg-orange-100 border-orange-400' }, { text: 'Compliance', color: 'bg-orange-100 border-orange-400' },
             { text: 'Discipline', color: 'bg-orange-100 border-orange-400' }, { text: 'Standardisation', color: 'bg-orange-100 border-orange-400' },
             { text: 'Reliable', color: 'bg-orange-100 border-orange-400' },
+            // Purple
             { text: 'Competitive', color: 'bg-purple-100 border-purple-400' }, { text: 'Performance', color: 'bg-purple-100 border-purple-400' },
             { text: 'Service', color: 'bg-purple-100 border-purple-400' }, { text: 'Excellence', color: 'bg-purple-100 border-purple-400' },
             { text: 'Speed', color: 'bg-purple-100 border-purple-400' }, { text: 'Goals', color: 'bg-purple-100 border-purple-400' },
@@ -76,20 +79,20 @@
             }
 
             getUserId() {
-                let id = localStorage.getItem('fg-id-v4');
+                let id = localStorage.getItem('fg-val-id-v8');
                 if (!id) {
                     id = 'u_' + Math.random().toString(36).substr(2, 9);
-                    localStorage.setItem('fg-id-v4', id);
+                    localStorage.setItem('fg-val-id-v8', id);
                 }
                 return id;
             }
 
             loadMyWords() {
-                const saved = localStorage.getItem('my-list-v4');
+                const saved = localStorage.getItem('my-val-list-v8');
                 return saved ? JSON.parse(saved) : [...initialWords];
             }
 
-            saveMyWords() { localStorage.setItem('my-list-v4', JSON.stringify(this.myAvailableWords)); }
+            saveMyWords() { localStorage.setItem('my-val-list-v8', JSON.stringify(this.myAvailableWords)); }
 
             setupPresence() {
                 const statusRef = database.ref('/status/' + this.userId);
@@ -100,19 +103,6 @@
                     const el = document.getElementById('user-count');
                     if (el) el.textContent = s.numChildren() || 0;
                 });
-            }
-
-            exportToCSV() {
-                let csv = "data:text/csv;charset=utf-8,Basket,Word,Votes\n";
-                baskets.forEach(b => {
-                    this.getBasketDisplay(this.sharedBaskets[b.id]).forEach(i => {
-                        csv += `"${b.name}","${i.word}",${i.count}\n`;
-                    });
-                });
-                const link = document.createElement("a");
-                link.setAttribute("href", encodeURI(csv));
-                link.setAttribute("download", "results.csv");
-                link.click();
             }
 
             async init() {
@@ -131,52 +121,53 @@
 
             handleDrop(target) {
                 if (!this.draggedWord) return;
-                
                 let newMyWords = [...this.myAvailableWords];
                 let newBaskets = JSON.parse(JSON.stringify(this.sharedBaskets));
-                
-                // Find the original word object to keep the color consistent
                 const wordInfo = initialWords.find(w => w.text === this.draggedWord);
-            
+
                 if (this.draggedFrom === 'available') {
-                    // Moving from Pool to a Basket
                     newMyWords = newMyWords.filter(w => w.text !== this.draggedWord);
                     if (target !== 'available') {
                         if (!newBaskets[target]) newBaskets[target] = [];
-                        newBaskets[target].push({ 
-                            word: this.draggedWord, 
-                            userId: this.userId, 
-                            color: wordInfo.color 
-                        });
+                        newBaskets[target].push({ word: this.draggedWord, userId: this.userId, color: wordInfo.color });
                     }
                 } else {
-                    // Moving from one Basket to another (or back to pool)
-                    const sourceBasket = this.draggedFrom;
-                    const idx = (newBaskets[sourceBasket] || []).findIndex(
-                        i => i.word === this.draggedWord && i.userId === this.userId
-                    );
-                    
-                    if (idx === -1) return; // Not your word, can't move it
-                    
-                    newBaskets[sourceBasket].splice(idx, 1); // Remove from old home
-                    
-                    if (target === 'available') {
-                        newMyWords.push(wordInfo); // Put back in pool
-                    } else {
-                        // Drop into new basket
-                        newBaskets[target].push({ 
-                            word: this.draggedWord, 
-                            userId: this.userId, 
-                            color: wordInfo.color 
-                        });
-                    }
+                    const idx = (newBaskets[this.draggedFrom] || []).findIndex(i => i.word === this.draggedWord && i.userId === this.userId);
+                    if (idx === -1) return;
+                    newBaskets[this.draggedFrom].splice(idx, 1);
+                    if (target === 'available') newMyWords.push(wordInfo);
+                    else newBaskets[target].push({ word: this.draggedWord, userId: this.userId, color: wordInfo.color });
                 }
-                
                 this.myAvailableWords = newMyWords;
                 this.sharedBaskets = newBaskets;
-                this.saveMyWords();
-                this.saveBaskets();
-                this.render();
+                this.saveMyWords(); this.saveBaskets(); this.render();
+            }
+
+            exportToCSV() {
+                let csv = "data:text/csv;charset=utf-8,Basket,Word,Votes\n";
+                baskets.forEach(b => {
+                    this.getBasketDisplay(this.sharedBaskets[b.id]).forEach(i => {
+                        csv += `"${b.name}","${i.word}",${i.count}\n`;
+                    });
+                });
+                const link = document.createElement("a");
+                link.setAttribute("href", encodeURI(csv));
+                link.setAttribute("download", "values_results.csv");
+                link.click();
+            }
+
+            resetMyWords() {
+                const used = new Set();
+                Object.values(this.sharedBaskets).forEach(b => b?.forEach(i => { if (i.userId === this.userId) used.add(i.word); }));
+                this.myAvailableWords = initialWords.filter(w => !used.has(w.text));
+                this.saveMyWords(); this.render();
+            }
+
+            async resetAllBaskets() {
+                if (confirm('Clear board?')) {
+                    this.sharedBaskets = { basket1: [], basket2: [], basket3: [], basket4: [] };
+                    await this.saveBaskets();
+                }
             }
 
             getBasketDisplay(items) {
@@ -196,28 +187,28 @@
 
             render() {
                 const root = document.getElementById('root');
-                if (this.loading) { root.innerHTML = '<div class="h-screen flex items-center justify-center">Loading...</div>'; return; }
+                if (this.loading) { root.innerHTML = '<div class="h-screen flex items-center justify-center font-bold text-slate-500">Connecting to Values Board...</div>'; return; }
                 root.innerHTML = `
                     <div class="min-h-screen bg-slate-100 p-2 md:p-4 font-sans text-slate-900">
                         <div class="max-w-6xl mx-auto">
                             <div class="text-center mb-6">
                                 <h1 class="text-xl md:text-3xl font-black uppercase tracking-tighter">Focus Group Discussions - Culture Values</h1>
-                                <p class="text-indigo-600 font-bold text-xs md:text-sm">👥 Live: <span id="user-count">...</span></p>
+                                <p class="text-indigo-600 font-bold text-xs md:text-sm">👥 Live Participants: <span id="user-count">...</span></p>
                                 <div class="mt-4 flex gap-2 justify-center flex-wrap">
                                     <button onclick="app.resetMyWords()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase shadow-md">Reset My List</button>
                                     ${window.location.search.includes('role=admin') ? `
-                                        <button onclick="app.exportToCSV()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase shadow-md">Export</button>
-                                        <button onclick="app.resetAllBaskets()" class="bg-rose-600 text-white px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase shadow-md">Clear</button>
+                                        <button onclick="app.exportToCSV()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase shadow-md">Export Data</button>
+                                        <button onclick="app.resetAllBaskets()" class="bg-rose-600 text-white px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase shadow-md">Clear Board</button>
                                     ` : ''}
                                 </div>
                             </div>
 
-                            <div ondragover="event.preventDefault()" ondrop="app.handleDrop('available')" class="bg-white rounded-2xl shadow-inner p-3 md:p-5 mb-6 border-2 border-dashed border-slate-300 min-h-24">
-                                <h2 class="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-3">Available Pool</h2>
+                            <div ondragover="event.preventDefault()" ondrop="app.handleDrop('available')" class="bg-white rounded-2xl shadow-inner p-3 md:p-5 mb-6 border-2 border-dashed border-slate-300 min-h-24 text-center">
+                                <h2 class="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-3">Available Words Pool</h2>
                                 <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                                     ${this.myAvailableWords.map(w => `
                                         <div draggable="true" ondragstart="app.draggedWord='${this.escapeHtml(w.text)}'; app.draggedFrom='available'"
-                                             class="${w.color} border-2 rounded-lg p-2 cursor-grab active:cursor-grabbing text-[10px] text-center font-bold uppercase tracking-tight shadow-sm hover:scale-105 transition-transform">
+                                             class="${w.color} border-2 rounded-lg p-2 cursor-grab active:cursor-grabbing text-[10px] text-center font-bold uppercase shadow-sm">
                                             ${this.escapeHtml(w.text)}
                                         </div>
                                     `).join('')}
@@ -257,6 +248,3 @@
     </script>
 </body>
 </html>
-
-
-
