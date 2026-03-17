@@ -37,25 +37,52 @@
         };
 
         const initialWords = [
-            { text: 'Trust', color: 'bg-blue-100 border-blue-400' }, { text: 'Teamwork', color: 'bg-blue-100 border-blue-400' },
-            { text: 'Respect', color: 'bg-blue-100 border-blue-400' }, { text: 'Communication', color: 'bg-blue-100 border-blue-400' },
-            { text: 'Care', color: 'bg-blue-100 border-blue-400' }, { text: 'Empowerment', color: 'bg-blue-100 border-blue-400' },
-            { text: 'Warm', color: 'bg-blue-100 border-blue-400' }, { text: 'Friendly', color: 'bg-blue-100 border-blue-400' },
-            { text: 'Honest', color: 'bg-blue-100 border-blue-400' }, { text: 'Transparent', color: 'bg-blue-100 border-blue-400' },
-            { text: 'Innovation', color: 'bg-green-100 border-green-400' }, { text: 'Creativity', color: 'bg-green-100 border-green-400' },
-            { text: 'Agility', color: 'bg-green-100 border-green-400' }, { text: 'Experimentation', color: 'bg-green-100 border-green-400' },
-            { text: 'Growth', color: 'bg-green-100 border-green-400' }, { text: 'Learning', color: 'bg-green-100 border-green-400' },
-            { text: 'Vision', color: 'bg-green-100 border-green-400' }, { text: 'Adaptability', color: 'bg-green-100 border-green-400' },
-            { text: 'Genuine', color: 'bg-green-100 border-green-400' },
-            { text: 'Stability', color: 'bg-orange-100 border-orange-400' }, { text: 'Consistency', color: 'bg-orange-100 border-orange-400' },
-            { text: 'Order', color: 'bg-orange-100 border-orange-400' }, { text: 'Efficiency', color: 'bg-orange-100 border-orange-400' },
-            { text: 'Accountability', color: 'bg-orange-100 border-orange-400' }, { text: 'Compliance', color: 'bg-orange-100 border-orange-400' },
-            { text: 'Discipline', color: 'bg-orange-100 border-orange-400' }, { text: 'Standardisation', color: 'bg-orange-100 border-orange-400' },
-            { text: 'Reliable', color: 'bg-orange-100 border-orange-400' },
-            { text: 'Competitive', color: 'bg-purple-100 border-purple-400' }, { text: 'Performance', color: 'bg-purple-100 border-purple-400' },
-            { text: 'Service', color: 'bg-purple-100 border-purple-400' }, { text: 'Excellence', color: 'bg-purple-100 border-purple-400' },
-            { text: 'Speed', color: 'bg-purple-100 border-purple-400' }, { text: 'Goals', color: 'bg-purple-100 border-purple-400' },
-            { text: 'Inspire', color: 'bg-purple-100 border-purple-400' }, { text: 'Confidence', color: 'bg-purple-100 border-purple-400' }
+            // Blue - Clan (Collaborate)
+            { text: 'Trust', color: 'bg-blue-100 border-blue-400' },
+            { text: 'Teamwork', color: 'bg-blue-100 border-blue-400' },
+            { text: 'Employee involvement', color: 'bg-blue-100 border-blue-400' },
+            { text: 'Loyalty', color: 'bg-blue-100 border-blue-400' },
+            { text: 'Commitment', color: 'bg-blue-100 border-blue-400' },
+            { text: 'Collaboration', color: 'bg-blue-100 border-blue-400' },
+            { text: 'Mutual respect', color: 'bg-blue-100 border-blue-400' },
+            { text: 'Empowerment', color: 'bg-blue-100 border-blue-400' },
+            { text: 'People development', color: 'bg-blue-100 border-blue-400' },
+            { text: 'Open communication', color: 'bg-blue-100 border-blue-400' },
+
+            // Green - Adhocracy (Create)
+            { text: 'Innovation', color: 'bg-green-100 border-green-400' },
+            { text: 'Agility', color: 'bg-green-100 border-green-400' },
+            { text: 'Creativity', color: 'bg-green-100 border-green-400' },
+            { text: 'Experimentation', color: 'bg-green-100 border-green-400' },
+            { text: 'Growth', color: 'bg-green-100 border-green-400' },
+            { text: 'Adaptability', color: 'bg-green-100 border-green-400' },
+            { text: 'Entrepreneurial thinking', color: 'bg-green-100 border-green-400' },
+            { text: 'Vision', color: 'bg-green-100 border-green-400' },
+            { text: 'Continuous learning', color: 'bg-green-100 border-green-400' },
+
+            // Orange - Hierarchy (Control)
+            { text: 'Stability', color: 'bg-orange-100 border-orange-400' },
+            { text: 'Consistency', color: 'bg-orange-100 border-orange-400' },
+            { text: 'Order', color: 'bg-orange-100 border-orange-400' },
+            { text: 'Efficiency', color: 'bg-orange-100 border-orange-400' },
+            { text: 'Predictability', color: 'bg-orange-100 border-orange-400' },
+            { text: 'Accountability', color: 'bg-orange-100 border-orange-400' },
+            { text: 'Discipline', color: 'bg-orange-100 border-orange-400' },
+            { text: 'Compliance', color: 'bg-orange-100 border-orange-400' },
+            { text: 'Formal authority', color: 'bg-orange-100 border-orange-400' },
+            { text: 'Standardization', color: 'bg-orange-100 border-orange-400' },
+
+            // Purple - Market (Compete)
+            { text: 'Results orientation', color: 'bg-purple-100 border-purple-400' },
+            { text: 'Competitiveness', color: 'bg-purple-100 border-purple-400' },
+            { text: 'Achievement', color: 'bg-purple-100 border-purple-400' },
+            { text: 'Accountability for outcomes', color: 'bg-purple-100 border-purple-400' },
+            { text: 'Customer focus', color: 'bg-purple-100 border-purple-400' },
+            { text: 'Productivity', color: 'bg-purple-100 border-purple-400' },
+            { text: 'Profitability', color: 'bg-purple-100 border-purple-400' },
+            { text: 'Speed', color: 'bg-purple-100 border-purple-400' },
+            { text: 'Goal clarity', color: 'bg-purple-100 border-purple-400' },
+            { text: 'Performance excellence', color: 'bg-purple-100 border-purple-400' }
         ];
 
         const baskets = [
